@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::{self, BufRead};
 use walkdir::WalkDir;
-use crate::ripgrep_lines::{filter_line_intervals, run_ripgrep};
+use crate::ripgrep_lines::process_file;
 
 #[derive(Debug)]
 pub struct CodeChunk {
@@ -29,35 +29,20 @@ pub fn process_folder(folder_path: &str) {
             let filename = relative_path.to_string_lossy().to_string();
             let file_path = entry.path().to_str().unwrap();
 
-            let pattern = "^}";
-            let lines = get_fileline_numbers(file_path, pattern);
-            process_lines(file_path, &filename, lines);
+            let filtered_lines = process_file(file_path, &filename);
+            file_to_chunks(file_path, &filename, filtered_lines);
         }
     }
 }
 
-fn get_fileline_numbers(file_path: &str, pattern: &str) -> Vec<usize> {
-    // Find matching lines using modified run_ripgrep
-    match run_ripgrep(file_path, pattern) {
-        Ok(lines) => lines,
-        Err(err) => {
-            eprintln!("Error running Ripgrep: {}", err);
-            Vec::new()
-        }
-    }
-}
-
-
-fn process_lines(file_path: &str, filename: &str, lines: Vec<usize>) {
-    println!("Starting Lines: {:?}", lines);
-
-    // Filter the line numbers to be within the desired interval
-    let filtered_lines = filter_line_intervals(lines);
+fn file_to_chunks(file_path: &str, filename: &str, lines: Vec<usize>) {
+    // Print the filtered lines
+    println!("Filtered Lines: {:?}", lines);
 
     // Process the lines and cut the file into chunks
     let mut start_line = 0;
 
-    for end_line in filtered_lines {
+    for end_line in lines {
         // Ensure end_line does not exceed the total number of lines in the file
         let total_lines = count_lines(file_path);
         let end_line = end_line.min(total_lines);
@@ -77,7 +62,7 @@ fn count_lines(file_path: &str) -> usize {
     lines
 }
 
-fn create_code_chunk(file_path: &str, relative_path: &str, start_line: usize, end_line: usize) -> CodeChunk {
+fn create_code_chunk(file_path: &str, _relative_path: &str, start_line: usize, end_line: usize) -> CodeChunk {
     let file = File::open(file_path).expect("Unable to open file");
     let lines: Vec<String> = io::BufReader::new(file).lines().map(|line| line.unwrap()).collect();
 

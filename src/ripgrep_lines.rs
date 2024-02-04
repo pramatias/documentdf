@@ -1,5 +1,10 @@
+pub fn process_file(file_path: &str, _filename: &str) -> Vec<usize> {
+    let pattern = "^}";
+    let lines = get_fileline_numbers(file_path, pattern);
+    filter_line_intervals(lines)
+}
 
-pub fn filter_line_intervals(lines: Vec<usize>) -> Vec<usize> {
+fn filter_line_intervals(lines: Vec<usize>) -> Vec<usize> {
     let mut filtered_lines = lines.clone();
     let mut is_changed = true;
 
@@ -37,7 +42,7 @@ pub fn filter_line_intervals(lines: Vec<usize>) -> Vec<usize> {
 }
 
 
-pub fn run_ripgrep(file_path: &str, pattern: &str) -> Result<Vec<usize>, String> {
+fn run_ripgrep(file_path: &str, pattern: &str) -> Result<Vec<usize>, String> {
     // Run Ripgrep and capture its output
     let rg_output = std::process::Command::new("rg")
         .arg(file_path)
@@ -67,6 +72,17 @@ pub fn run_ripgrep(file_path: &str, pattern: &str) -> Result<Vec<usize>, String>
         Err(err) => {
             // Return an error with the description of the process creation failure
             Err(format!("Error running Ripgrep: {}", err))
+        }
+    }
+}
+
+fn get_fileline_numbers(file_path: &str, pattern: &str) -> Vec<usize> {
+    // Find matching lines using modified run_ripgrep
+    match run_ripgrep(file_path, pattern) {
+        Ok(lines) => lines,
+        Err(err) => {
+            eprintln!("Error running Ripgrep: {}", err);
+            Vec::new()
         }
     }
 }
