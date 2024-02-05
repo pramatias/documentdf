@@ -8,6 +8,8 @@ struct SortedLineNumbers {
 pub fn process_file(file_path: &str, _filename: &str) -> Vec<usize> {
     let first_pattern = "^}";
     let second_pattern = "^    }$";
+    let third_pattern = "^        }$";
+    let fourth_pattern = "^$";
 
     // Get lines matching the "^}" pattern
     let first_ripgrep_output_lines = get_fileline_numbers(file_path, first_pattern);
@@ -23,8 +25,30 @@ pub fn process_file(file_path: &str, _filename: &str) -> Vec<usize> {
     let mut second_pattern_lines = SortedLineNumbers::from_vec(second_ripgrep_output_lines);
     let second_pattern_filtered_lines = second_pattern_lines.filter_line_intervals();
 
-    // Merge and filter the lines from both patterns
+    // Get lines matching the "^        }$" pattern
+    let third_ripgrep_output_lines = get_fileline_numbers(file_path, third_pattern);
+
+    // Sort and filter the lines
+    let mut third_pattern_lines = SortedLineNumbers::from_vec(third_ripgrep_output_lines);
+    let third_pattern_filtered_lines = third_pattern_lines.filter_line_intervals();
+
+    // Get lines matching the "^$" pattern
+    let fourth_ripgrep_output_lines = get_fileline_numbers(file_path, fourth_pattern);
+
+    // Sort and filter the lines
+    let mut fourth_pattern_lines = SortedLineNumbers::from_vec(fourth_ripgrep_output_lines);
+    let fourth_pattern_filtered_lines = fourth_pattern_lines.filter_line_intervals();
+
+    // Merge and filter the lines from all patterns
     first_pattern_filtered_lines.merge(second_pattern_filtered_lines);
+    first_pattern_filtered_lines = first_pattern_filtered_lines.filter_line_intervals();
+
+    first_pattern_filtered_lines.merge(third_pattern_filtered_lines);
+    first_pattern_filtered_lines = first_pattern_filtered_lines.filter_line_intervals();
+
+    first_pattern_filtered_lines.merge(fourth_pattern_filtered_lines);
+    first_pattern_filtered_lines = first_pattern_filtered_lines.filter_line_intervals();
+
     let mut final_filtered_lines = first_pattern_filtered_lines.filter_line_intervals();
     final_filtered_lines.fill_line_gaps();
 
