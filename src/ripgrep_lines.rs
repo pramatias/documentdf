@@ -38,7 +38,8 @@ pub fn process_file(file_path: &str, _filename: &str) -> Vec<usize> {
 
     // Merge and filter the lines from both patterns
     first_pattern_lines.merge(second_pattern_filtered_lines);
-    let final_filtered_lines = first_pattern_lines.filter_line_intervals();
+    let mut final_filtered_lines = first_pattern_lines.filter_line_intervals();
+    final_filtered_lines.fill_line_gaps();
 
     // Perform further operations if needed
     let final_result = final_filtered_lines.to_vec();
@@ -112,6 +113,33 @@ impl SortedLineNumbers {
     // Convert SortedLineNumbers to Vec<usize>
     pub fn to_vec(&self) -> Vec<usize> {
         self.lines.clone()
+    }
+
+    pub fn fill_line_gaps(&mut self) {
+        let mut is_gap_greater_than_50 = true;
+
+        while is_gap_greater_than_50 {
+            let mut merged_lines = Vec::new();
+            let mut iter_self = self.lines.iter().peekable();
+            is_gap_greater_than_50 = false;
+
+            while let Some(&self_val) = iter_self.next() {
+                merged_lines.push(self_val);
+
+                if let Some(&next_self) = iter_self.peek() {
+                    let diff = next_self - self_val;
+                    if diff > 50 {
+                        // Gap greater than 50, insert a new element between self_val and next_self
+                        let new_element = (self_val + next_self) / 2;
+                        merged_lines.push(new_element);
+                        is_gap_greater_than_50 = true;
+                    }
+                }
+            }
+
+            // Update self.lines with the merged result
+            self.lines = merged_lines;
+        }
     }
 }
 
