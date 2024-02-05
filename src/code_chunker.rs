@@ -2,22 +2,23 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use walkdir::WalkDir;
 use crate::ripgrep_lines::process_file;
+use std::fmt;
 
 #[derive(Debug)]
 pub struct CodeChunk {
     pub filename: String,
     pub start_line: usize,
     pub end_line: usize,
-    pub chunk: String,
+    pub chunks: Vec<String>,
 }
 
 impl CodeChunk {
-    pub fn new(filename: &str, start_line: usize, end_line: usize, chunk: &str) -> CodeChunk {
+    pub fn new(filename: &str, start_line: usize, end_line: usize, chunks: Vec<String>) -> CodeChunk {
         CodeChunk {
             filename: filename.to_string(),
             start_line,
             end_line,
-            chunk: chunk.to_string(),
+            chunks,
         }
     }
 }
@@ -37,7 +38,7 @@ pub fn process_folder(folder_path: &str) {
 
 fn file_to_chunks(file_path: &str, filename: &str, lines: Vec<usize>) {
     // Print the filtered lines
-    //println!("Filtered Lines: {:?}", lines);
+    println!("Ripgrep filtered Lines: {:?}", lines);
 
     // Process the lines and cut the file into chunks
     let mut start_line = 0;
@@ -45,14 +46,16 @@ fn file_to_chunks(file_path: &str, filename: &str, lines: Vec<usize>) {
     for end_line in lines {
         // Ensure end_line does not exceed the total number of lines in the file
         let total_lines = count_lines(file_path);
-        let end_line = end_line.min(total_lines);
+        let adjusted_end_line = if end_line > 0 { end_line - 1 } else { 0 };
+        let end_line = adjusted_end_line.min(total_lines);
 
-        let chunk = create_code_chunk(file_path, filename, start_line, end_line + 1);
-        if !chunk.chunk.is_empty() {
-            // Do something with the code chunk, like printing it
-            //println!("{:?}", chunk);
+        let chunk = create_code_chunk(file_path, filename, start_line, end_line);
+        if !chunk.chunks.is_empty() {
+            // Use fmt::Display to format the CodeChunk and print the result
+            let formatted_chunk = format!("{}", chunk);
+            println!("{}", formatted_chunk);
         }
-        start_line = end_line + 1;
+        start_line = end_line;
     }
 }
 
@@ -70,7 +73,22 @@ fn create_code_chunk(file_path: &str, _relative_path: &str, start_line: usize, e
     let end_line = end_line.min(lines.len());
 
     let chunk_lines: Vec<String> = lines[start_line..end_line].to_vec();
-    let chunk = chunk_lines.join("\n");
 
-    CodeChunk::new(&file_path, start_line, end_line, &chunk)
+    CodeChunk::new(&file_path, start_line, end_line, chunk_lines)
+}
+
+impl fmt::Display for CodeChunk {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(
+            f,
+            "File: {}\nStart Line: {}\nEnd Line: {}\nChunks:",
+            self.filename, self.start_line, self.end_line
+        )?;
+
+        for chunk in &self.chunks {
+            writeln!(f, "{}", chunk)?;
+        }
+
+        Ok(())
+    }
 }

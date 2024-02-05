@@ -1,4 +1,3 @@
-use std::collections::BinaryHeap;
 use std::cmp::Ordering;
 
 #[derive(Debug)]
@@ -13,39 +12,24 @@ pub fn process_file(file_path: &str, _filename: &str) -> Vec<usize> {
     // Get lines matching the "^}" pattern
     let first_ripgrep_output_lines = get_fileline_numbers(file_path, first_pattern);
 
-    // Print lines before filtering for the first pattern
-    println!("Lines before filtering ({}): {:?}", first_pattern, first_ripgrep_output_lines);
-
     // Sort and filter the lines
     let mut first_pattern_lines = SortedLineNumbers::from_vec(first_ripgrep_output_lines);
-    let first_pattern_filtered_lines = first_pattern_lines.filter_line_intervals();
-
-    // Print lines after filtering for the first pattern
-    println!("Lines after filtering ({}): {:?}\n", first_pattern, first_pattern_filtered_lines);
+    let mut first_pattern_filtered_lines = first_pattern_lines.filter_line_intervals();
 
     // Get lines matching the "^    }$" pattern
     let second_ripgrep_output_lines = get_fileline_numbers(file_path, second_pattern);
-
-    // Print lines before filtering for the second pattern
-    println!("Lines before filtering ({}): {:?}\n", second_pattern, second_ripgrep_output_lines);
 
     // Sort and filter the lines
     let mut second_pattern_lines = SortedLineNumbers::from_vec(second_ripgrep_output_lines);
     let second_pattern_filtered_lines = second_pattern_lines.filter_line_intervals();
 
-    // Print lines after filtering for the second pattern
-    println!("Lines after filtering ({}): {:?}\n", second_pattern, second_pattern_filtered_lines);
-
     // Merge and filter the lines from both patterns
-    first_pattern_lines.merge(second_pattern_filtered_lines);
-    let mut final_filtered_lines = first_pattern_lines.filter_line_intervals();
+    first_pattern_filtered_lines.merge(second_pattern_filtered_lines);
+    let mut final_filtered_lines = first_pattern_filtered_lines.filter_line_intervals();
     final_filtered_lines.fill_line_gaps();
 
     // Perform further operations if needed
     let final_result = final_filtered_lines.to_vec();
-
-    // Print the final result
-    println!("Final Result: {:?}\n", final_result);
 
     final_result
 }
@@ -103,11 +87,6 @@ impl SortedLineNumbers {
 
         // Update self.lines with the merged result
         self.lines = merged_lines;
-    }
-
-    // Getter method to access the sorted lines
-    pub fn get_lines(&self) -> &Vec<usize> {
-        &self.lines
     }
 
     // Convert SortedLineNumbers to Vec<usize>
@@ -182,7 +161,7 @@ fn get_fileline_numbers(file_path: &str, pattern: &str) -> Vec<usize> {
     // Find matching lines using modified run_ripgrep
     match run_ripgrep(file_path, pattern) {
         Ok(lines) => {
-            println!("Ripgrep lines: {:?}\n", lines);
+            //println!("Ripgrep lines: {:?}\n", lines);
 
             // Insert 0 at the start of the vector
             let mut lines = lines;  // Declare as mutable here
