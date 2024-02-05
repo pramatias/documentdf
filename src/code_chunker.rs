@@ -37,7 +37,7 @@ pub fn process_folder(folder_path: &str) {
 
 fn file_to_chunks(file_path: &str, filename: &str, lines: Vec<usize>) {
     // Print the filtered lines
-    println!("Filtered Lines: {:?}", lines);
+    //println!("Filtered Lines: {:?}", lines);
 
     // Process the lines and cut the file into chunks
     let mut start_line = 0;
