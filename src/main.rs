@@ -2,6 +2,7 @@ use clap::{App, Arg};
 
 mod code_chunker;
 mod ripgrep_lines;
+mod code_chunk;
 use code_chunker::process_folder;
 
 fn main() {

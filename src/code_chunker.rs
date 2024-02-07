@@ -1,29 +1,13 @@
 use std::fs::File;
 use std::io::{self, BufRead};
 use walkdir::WalkDir;
+
 use crate::ripgrep_lines::process_file;
-use std::fmt;
+use crate::code_chunk::{CodeChunk};
 
-#[derive(Debug)]
-pub struct CodeChunk {
-    pub filename: String,
-    pub start_line: usize,
-    pub end_line: usize,
-    pub chunks: Vec<String>,
-}
+pub fn process_folder(folder_path: &str) -> Vec<CodeChunk> {
+    let mut all_chunks = Vec::new(); // Vector to accumulate all chunks
 
-impl CodeChunk {
-    pub fn new(filename: &str, start_line: usize, end_line: usize, chunks: Vec<String>) -> CodeChunk {
-        CodeChunk {
-            filename: filename.to_string(),
-            start_line,
-            end_line,
-            chunks,
-        }
-    }
-}
-
-pub fn process_folder(folder_path: &str) {
     for entry in WalkDir::new(folder_path).into_iter().filter_map(|e| e.ok()) {
         if entry.file_type().is_file() && entry.path().extension().map_or(false, |ext| ext == "rs") {
             let relative_path = entry.path().strip_prefix(folder_path).unwrap();
@@ -31,17 +15,25 @@ pub fn process_folder(folder_path: &str) {
             let file_path = entry.path().to_str().unwrap();
 
             let filtered_lines = process_file(file_path, &filename);
-            file_to_chunks(file_path, &filename, filtered_lines);
+            let chunks = file_to_chunks(file_path, &filename, filtered_lines);
+
+            // Extend the all_chunks vector with the chunks for this file
+            all_chunks.extend(chunks);
         }
     }
+
+    // Return the accumulated vector of chunks
+    all_chunks
 }
 
-fn file_to_chunks(file_path: &str, filename: &str, lines: Vec<usize>) {
+pub fn file_to_chunks(file_path: &str, filename: &str, lines: Vec<usize>) -> Vec<CodeChunk> {
     // Print the filtered lines
     //println!("Ripgrep filtered Lines: {:?}", lines);
 
     // Process the lines and cut the file into chunks
     let mut start_line = 0;
+    let mut id = 0;  // Initialize id counter
+    let mut chunks = Vec::new(); // Initialize vector to store chunks
 
     for end_line in lines {
         // Ensure end_line does not exceed the total number of lines in the file
@@ -49,14 +41,20 @@ fn file_to_chunks(file_path: &str, filename: &str, lines: Vec<usize>) {
         let adjusted_end_line = if end_line > 0 { end_line - 1 } else { 0 };
         let end_line = adjusted_end_line.min(total_lines);
 
-        let chunk = create_code_chunk(file_path, filename, start_line, end_line);
+        let chunk = create_code_chunk(file_path, filename, id, start_line, end_line);
+
         if !chunk.chunks.is_empty() {
-            // Use fmt::Display to format the CodeChunk and print the result
-            let formatted_chunk = format!("{}", chunk);
-            println!("{}", formatted_chunk);
+            // Push the chunk to the vector
+            chunks.push(chunk);
         }
         start_line = end_line;
+
+        // Increment id for the next chunk
+        id += 1;
     }
+
+    // Return the vector of chunks
+    chunks
 }
 
 fn count_lines(file_path: &str) -> usize {
@@ -65,7 +63,7 @@ fn count_lines(file_path: &str) -> usize {
     lines
 }
 
-fn create_code_chunk(file_path: &str, _relative_path: &str, start_line: usize, end_line: usize) -> CodeChunk {
+fn create_code_chunk(file_path: &str, _relative_path: &str, id: usize, start_line: usize, end_line: usize) -> CodeChunk {
     let file = File::open(file_path).expect("Unable to open file");
     let lines: Vec<String> = io::BufReader::new(file).lines().map(|line| line.unwrap()).collect();
 
@@ -74,21 +72,6 @@ fn create_code_chunk(file_path: &str, _relative_path: &str, start_line: usize, e
 
     let chunk_lines: Vec<String> = lines[start_line..end_line].to_vec();
 
-    CodeChunk::new(&file_path, start_line, end_line, chunk_lines)
+    CodeChunk::new(id, file_path, start_line, end_line, chunk_lines, false)
 }
 
-impl fmt::Display for CodeChunk {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(
-            f,
-            "File: {}\nStart Line: {}\nEnd Line: {}\nChunks:",
-            self.filename, self.start_line, self.end_line
-        )?;
-
-        for chunk in &self.chunks {
-            writeln!(f, "{}", chunk)?;
-        }
-
-        Ok(())
-    }
-}
