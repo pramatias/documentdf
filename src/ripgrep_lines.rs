@@ -18,12 +18,19 @@ pub fn process_file(file_path: &str, _filename: &str) -> Vec<usize> {
     let mut first_pattern_lines = SortedLineNumbers::from_vec(first_ripgrep_output_lines);
     let mut first_pattern_filtered_lines = first_pattern_lines.filter_line_intervals();
 
+    // Print lines after filtering for the first pattern
+    //println!("Lines after first filtering ({}): {:?}\n", first_pattern, first_pattern_filtered_lines);
+
     // Get lines matching the "^    }$" pattern
     let second_ripgrep_output_lines = get_fileline_numbers(file_path, second_pattern);
 
     // Sort and filter the lines
     let mut second_pattern_lines = SortedLineNumbers::from_vec(second_ripgrep_output_lines);
     let second_pattern_filtered_lines = second_pattern_lines.filter_line_intervals();
+
+    // Print lines after filtering for the second pattern
+    //println!("Lines after second filtering ({}): {:?}\n", second_pattern, second_pattern_filtered_lines);
+
 
     // Get lines matching the "^        }$" pattern
     let third_ripgrep_output_lines = get_fileline_numbers(file_path, third_pattern);
@@ -32,12 +39,18 @@ pub fn process_file(file_path: &str, _filename: &str) -> Vec<usize> {
     let mut third_pattern_lines = SortedLineNumbers::from_vec(third_ripgrep_output_lines);
     let third_pattern_filtered_lines = third_pattern_lines.filter_line_intervals();
 
+    // Print lines after filtering for the third pattern
+    //println!("Lines after third filtering ({}): {:?}\n", third_pattern, third_pattern_filtered_lines);
+
     // Get lines matching the "^$" pattern
     let fourth_ripgrep_output_lines = get_fileline_numbers(file_path, fourth_pattern);
 
     // Sort and filter the lines
     let mut fourth_pattern_lines = SortedLineNumbers::from_vec(fourth_ripgrep_output_lines);
     let fourth_pattern_filtered_lines = fourth_pattern_lines.filter_line_intervals();
+
+    // Print lines after filtering for the fourth pattern
+    //println!("Lines after fourth filtering ({}): {:?}\n", fourth_pattern, fourth_pattern_filtered_lines);
 
     // Merge and filter the lines from all patterns
     first_pattern_filtered_lines.merge(second_pattern_filtered_lines);
@@ -51,9 +64,13 @@ pub fn process_file(file_path: &str, _filename: &str) -> Vec<usize> {
 
     let mut final_filtered_lines = first_pattern_filtered_lines.filter_line_intervals();
     final_filtered_lines.fill_line_gaps();
+    final_filtered_lines = final_filtered_lines.filter_line_intervals();
 
     // Perform further operations if needed
     let final_result = final_filtered_lines.to_vec();
+
+    // Print the final result
+    //println!("Final Result: {:?}\n", final_result);
 
     final_result
 }
@@ -119,6 +136,12 @@ impl SortedLineNumbers {
     }
 
     pub fn fill_line_gaps(&mut self) {
+        // Ensure there's at least one element in self.lines
+        if self.lines.len() < 2 {
+            self.lines.push(50);
+            return;
+        }
+
         let mut is_gap_greater_than_50 = true;
 
         while is_gap_greater_than_50 {
@@ -162,21 +185,26 @@ fn run_ripgrep(file_path: &str, pattern: &str) -> Result<Vec<usize>, String> {
                 // Parse Ripgrep output and extract line numbers
                 let stdout_str = String::from_utf8_lossy(&output.stdout);
 
-                let lines: Vec<usize> = stdout_str
+                let mut lines: Vec<usize> = stdout_str
                     .lines()
                     .filter_map(|line| line.split(':').next().and_then(|num| num.parse().ok()))
                     .map(|num: usize| num + 1) // Add 1 to get the next line
                     .collect();
 
+                // Insert 0 at the start of lines if the pattern is "^}"
+                if pattern == "^}" {
+                    lines.insert(0, 0);
+                }
+
                 Ok(lines)
             } else {
                 // Return an error with Ripgrep's stderr
-                Err(format!("Ripgrep failed: {:?}", output.stderr))
+                Ok(Vec::new())
             }
         }
         Err(err) => {
             // Return an error with the description of the process creation failure
-            Err(format!("Error running Ripgrep: {}", err))
+            Err(format!("Error running Ripgrep: {} {}", err , file_path))
         }
     }
 }
@@ -186,10 +214,6 @@ fn get_fileline_numbers(file_path: &str, pattern: &str) -> Vec<usize> {
     match run_ripgrep(file_path, pattern) {
         Ok(lines) => {
             //println!("Ripgrep lines: {:?}\n", lines);
-
-            // Insert 0 at the start of the vector
-            let mut lines = lines;  // Declare as mutable here
-            lines.insert(0, 0);
 
             lines
         }
