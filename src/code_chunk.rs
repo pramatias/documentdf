@@ -1,13 +1,14 @@
 use std::fmt;
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodeChunk {
     pub id: usize,
     pub filename: String,
     pub start_line: usize,
     pub end_line: usize,
-    pub chunks: Vec<String>,
     pub documented: bool,
+    pub chunks: Vec<String>,
 }
 
 impl CodeChunk {
