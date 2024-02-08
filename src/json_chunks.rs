@@ -25,13 +25,6 @@ pub fn create_json_source(folder_path: &str) -> Result<(), Box<dyn std::error::E
     let file_path = "./doc/source.json";
     write_chunks_to_file(&chunks, file_path)?;
 
-    // Read the chunks from the JSON file
-    let read_chunks = read_chunks_from_file(file_path)?;
-    // Print each read chunk
-    for chunk in &read_chunks {
-        println!("{}", chunk);
-    }
-
     Ok(())
 }
 

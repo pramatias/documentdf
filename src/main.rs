@@ -3,9 +3,11 @@ use clap::{App, Arg};
 mod code_chunker;
 mod ripgrep_lines;
 mod code_chunk;
-mod toml_chunks;
+mod json_chunks;
+mod bot_connect;
 
-use toml_chunks::create_json_source;
+use json_chunks::create_json_source;
+use bot_connect::connect;
 
 fn main() {
     let matches = App::new("Code Chunker")
@@ -21,6 +23,8 @@ fn main() {
         .get_matches();
 
     let folder_path = matches.value_of("folder").unwrap();
+
+    connect();
 
     let _ = create_json_source(folder_path);
 }
