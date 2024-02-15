@@ -12,7 +12,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Display statistics based on the contents of the code chunk JSON data
     code_chunks_json.display_stats()?;
 
-        server::serve().await;
+    server::serve().await;
 
     Ok(())
 }
